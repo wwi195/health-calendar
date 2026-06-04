@@ -464,7 +464,7 @@
       <input type="number" id="inIntake" min="0" max="9999" placeholder="例: 1800" inputmode="numeric">
     </div>
     <div class="form-row">
-      <label>🔵 消費カロリー (kcal)</label>
+      <label>🔵 消費カロリー（運動分） (kcal)</label>
       <input type="number" id="inBurn" min="0" max="9999" placeholder="例: 300" inputmode="numeric">
     </div>
 
@@ -676,7 +676,9 @@ function renderCalendar() {
       if (rec.intake) html += `<div class="d-intake">摂${rec.intake}</div>`;
       if (rec.burn)   html += `<div class="d-burn">消${rec.burn}</div>`;
       if (rec.intake != null || rec.burn != null) {
-        const bal = (rec.intake || 0) - (rec.burn || 0);
+        const profile = getProfile();
+        const bmr     = (profile && rec.intake != null) ? profile.bmr : 0;
+        const bal     = (rec.intake || 0) - (rec.burn || 0) - bmr;
         const sign = bal >= 0 ? '+' : '';
         html += `<div class="${bal >= 0 ? 'd-plus' : 'd-minus'}">${sign}${bal}</div>`;
       }
@@ -779,15 +781,21 @@ document.getElementById('modalOverlay').addEventListener('pointerdown', function
 });
 
 function refreshBalPreview() {
-  const intake = parseFloat(document.getElementById('inIntake').value) || 0;
-  const burn   = parseFloat(document.getElementById('inBurn').value)   || 0;
-  const el = document.getElementById('balPreview');
+  const intake  = parseFloat(document.getElementById('inIntake').value) || 0;
+  const burn    = parseFloat(document.getElementById('inBurn').value)   || 0;
+  const el      = document.getElementById('balPreview');
+  const profile = getProfile();
+  const bmr     = profile ? profile.bmr : 0;
+
   if (intake > 0 || burn > 0) {
-    const bal = intake - burn;
+    const bal  = intake - burn - bmr;
     const sign = bal >= 0 ? '+' : '';
     const color = bal >= 0 ? '#e67e22' : '#27ae60';
+    const bmrNote = bmr > 0
+      ? `<div style="font-size:11px;color:#999;margin-top:3px">基礎代謝 ${bmr.toLocaleString()} kcal を含む</div>`
+      : '';
     el.style.display = 'block';
-    el.innerHTML = `収支: <span style="color:${color};font-size:16px">${sign}${bal} kcal</span>`;
+    el.innerHTML = `収支: <span style="color:${color};font-size:16px">${sign}${bal.toLocaleString()} kcal</span>${bmrNote}`;
   } else {
     el.style.display = 'none';
   }
