@@ -713,7 +713,7 @@ function renderToday() {
   // ── Calorie section ──
   const intake     = rec.intake != null ? rec.intake : null;
   const burn       = rec.burn   != null ? rec.burn   : 0;
-  const bmr        = (profile && intake != null) ? profile.bmr : 0;
+  const bmr        = (profile && intake != null && intake > 0) ? profile.bmr : 0;
   const hasCalorie = rec.intake != null || rec.burn != null;
 
   let calHTML = '';
@@ -773,7 +773,7 @@ function renderToday() {
     ${rec.weight ? `
     <div class="today-card">
       <div class="today-card-title">⚖️ 体重</div>
-      <div class="today-weight">${rec.weight} kg</div>
+      <div class="today-weight">${Number(rec.weight)} kg</div>
     </div>` : ''}
     <button class="today-record-btn" onclick="openModal('${todayKey}')">✏️ 今日を記録・編集</button>
   `;
