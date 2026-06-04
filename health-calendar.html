@@ -1,0 +1,946 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>ヘルスカレンダー</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Noto Sans JP', sans-serif;
+      background: #f0f0f0;
+      color: #333;
+      -webkit-text-size-adjust: 100%;
+    }
+
+    #app {
+      max-width: 600px;
+      margin: 0 auto;
+      min-height: 100vh;
+      background: #fff;
+      box-shadow: 0 0 20px rgba(0,0,0,0.1);
+    }
+
+    /* ── Header ── */
+    .header {
+      background: linear-gradient(135deg, #ff6b9d, #ff8fab);
+      color: #fff;
+      padding: 12px 14px 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .header h1 { font-size: 15px; font-weight: 700; letter-spacing: 0.5px; }
+    .view-tabs { display: flex; gap: 6px; }
+    .tab-btn {
+      background: rgba(255,255,255,0.25);
+      border: none;
+      color: #fff;
+      padding: 5px 11px;
+      border-radius: 20px;
+      font-size: 12px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: background 0.2s;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .tab-btn.active {
+      background: #fff;
+      color: #ff6b9d;
+    }
+    .tab-btn:not(.active):active { background: rgba(255,255,255,0.4); }
+
+    /* ── Calendar nav ── */
+    .cal-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      background: #fff5f8;
+      border-bottom: 1px solid #ffe4ec;
+    }
+    .nav-btn {
+      background: #fff;
+      border: 1px solid #ffb3cc;
+      color: #ff6b9d;
+      padding: 4px 14px;
+      border-radius: 6px;
+      font-size: 14px;
+      cursor: pointer;
+      font-weight: bold;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .nav-btn:active { background: #fff0f5; }
+    .month-title { font-size: 16px; font-weight: 700; color: #333; }
+
+    /* ── Phase legend ── */
+    .phase-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px 10px;
+      padding: 8px 14px;
+      background: #fafafa;
+      border-bottom: 1px solid #eee;
+    }
+    .legend-item { display: flex; align-items: center; gap: 4px; font-size: 10px; color: #555; }
+    .legend-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+    .legend-pred { border: 1px dashed #e74c3c !important; background: #ffe8e8 !important; }
+
+    /* ── Calendar grid ── */
+    .cal-grid-wrap { padding: 6px 6px 12px; }
+    .weekday-row {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 2px;
+      margin-bottom: 3px;
+    }
+    .wday {
+      text-align: center;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 0;
+      color: #888;
+    }
+    .wday.sun { color: #e74c3c; }
+    .wday.sat { color: #3498db; }
+
+    .days-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 2px;
+    }
+
+    .day-cell {
+      min-height: 72px;
+      border: 1px solid #efefef;
+      border-radius: 5px;
+      padding: 2px 3px 3px;
+      cursor: pointer;
+      background: #fff;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.15s;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: rgba(255,107,157,0.15);
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    .day-cell:active { background: #fff8fb; }
+    .day-cell.empty {
+      background: #f8f8f8;
+      cursor: default;
+      border-color: transparent;
+    }
+    .day-cell.today { border: 2px solid #ff6b9d !important; }
+    .day-cell.predicted { background: #fff3f3; }
+
+    .phase-bar {
+      height: 3px;
+      border-radius: 2px 2px 0 0;
+      margin: -2px -3px 3px;
+      width: calc(100% + 6px);
+    }
+
+    .day-num {
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 1.2;
+      display: flex;
+      align-items: center;
+      gap: 3px;
+    }
+    .day-cell.sun-col .day-num { color: #e74c3c; }
+    .day-cell.sat-col .day-num { color: #3498db; }
+
+    .period-mark {
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      background: #e74c3c;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .day-data {
+      font-size: 9px;
+      line-height: 1.5;
+      margin-top: 2px;
+    }
+    .d-intake  { color: #e74c3c; }
+    .d-burn    { color: #3498db; }
+    .d-plus    { color: #e67e22; font-weight: 700; }
+    .d-minus   { color: #27ae60; font-weight: 700; }
+    .d-weight  { color: #7f8c8d; }
+
+    .phase-lbl {
+      font-size: 8px;
+      line-height: 1.2;
+      margin-top: 1px;
+      word-break: keep-all;
+    }
+
+    @media (max-width: 380px) {
+      .day-cell { min-height: 64px; }
+      .day-data { font-size: 8px; }
+      .phase-lbl { font-size: 7px; }
+    }
+    @media (max-width: 320px) {
+      .day-cell { min-height: 56px; padding: 1px 2px 2px; }
+    }
+
+    /* ── Graph view ── */
+    #graphView {
+      display: none;
+      padding: 0 0 20px;
+    }
+    .graph-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      background: #fff5f8;
+      border-bottom: 1px solid #ffe4ec;
+    }
+    .chart-section { padding: 14px 14px 0; }
+    .chart-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #555;
+      margin-bottom: 8px;
+    }
+    .chart-wrap {
+      border: 1px solid #eee;
+      border-radius: 10px;
+      overflow: hidden;
+      background: #fafafa;
+    }
+    canvas { display: block; width: 100% !important; }
+
+    /* ── Modal ── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      z-index: 500;
+      align-items: flex-end;
+      justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: #fff;
+      border-radius: 16px 16px 0 0;
+      padding: 20px 18px 32px;
+      width: 100%;
+      max-width: 600px;
+      max-height: 90vh;
+      overflow-y: auto;
+      animation: slideUp 0.22s ease-out;
+    }
+    @media (min-height: 700px) {
+      .modal-overlay { align-items: center; }
+      .modal { border-radius: 16px; max-width: 400px; }
+    }
+    @keyframes slideUp {
+      from { transform: translateY(30px); opacity: 0; }
+      to   { transform: translateY(0);    opacity: 1; }
+    }
+
+    .modal-title {
+      font-size: 17px;
+      font-weight: 700;
+      color: #ff6b9d;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .form-row { margin-bottom: 13px; }
+    .form-row label {
+      display: block;
+      font-size: 12px;
+      font-weight: 700;
+      color: #666;
+      margin-bottom: 5px;
+    }
+    .form-row input[type="number"] {
+      width: 100%;
+      padding: 9px 12px;
+      border: 1.5px solid #ddd;
+      border-radius: 8px;
+      font-size: 15px;
+      appearance: none;
+      -moz-appearance: textfield;
+      transition: border-color 0.15s;
+    }
+    .form-row input[type="number"]:focus {
+      outline: none;
+      border-color: #ff6b9d;
+    }
+    .form-row input[type="number"]::-webkit-inner-spin-button,
+    .form-row input[type="number"]::-webkit-outer-spin-button { opacity: 1; }
+
+    .balance-preview {
+      background: #f5f5f5;
+      border-radius: 8px;
+      padding: 8px 12px;
+      text-align: center;
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 13px;
+    }
+
+    .period-label {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: #fff0f5;
+      border: 1px solid #ffd0e0;
+      border-radius: 10px;
+      padding: 10px 12px;
+      cursor: pointer;
+      margin-bottom: 16px;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .period-label input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      accent-color: #e74c3c;
+      flex-shrink: 0;
+      cursor: pointer;
+    }
+    .period-label span {
+      font-size: 13px;
+      color: #c0392b;
+      font-weight: 600;
+    }
+
+    .modal-actions { display: flex; gap: 8px; }
+    .btn-save {
+      flex: 1;
+      background: #ff6b9d;
+      color: #fff;
+      border: none;
+      padding: 12px;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .btn-save:active { background: #e85a8c; }
+    .btn-delete {
+      background: #f5f5f5;
+      color: #999;
+      border: none;
+      padding: 12px 14px;
+      border-radius: 10px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .btn-cancel {
+      background: #f5f5f5;
+      color: #666;
+      border: none;
+      padding: 12px 14px;
+      border-radius: 10px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+<div id="app">
+
+  <!-- Header -->
+  <div class="header">
+    <h1>🌸 ヘルスカレンダー</h1>
+    <div class="view-tabs">
+      <button class="tab-btn active" id="tabCal" onclick="switchView('calendar')">📅 カレンダー</button>
+      <button class="tab-btn"        id="tabGph" onclick="switchView('graph')">📊 グラフ</button>
+    </div>
+  </div>
+
+  <!-- ===== CALENDAR VIEW ===== -->
+  <div id="calendarView">
+    <div class="cal-nav">
+      <button class="nav-btn" onclick="changeMonth(-1)">◀</button>
+      <span class="month-title" id="monthTitle"></span>
+      <button class="nav-btn" onclick="changeMonth(1)">▶</button>
+    </div>
+    <div class="phase-legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#ffb3b3"></div>生理中</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#b3ffb3"></div>痩せやすい</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#fff3b3"></div>排卵日</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#ffd9b3"></div>むくみやすい</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#f5b3ff"></div>むくみ注意</div>
+      <div class="legend-item"><div class="legend-dot legend-pred"></div>次回予測</div>
+    </div>
+    <div class="cal-grid-wrap">
+      <div class="weekday-row">
+        <div class="wday sun">日</div>
+        <div class="wday">月</div>
+        <div class="wday">火</div>
+        <div class="wday">水</div>
+        <div class="wday">木</div>
+        <div class="wday">金</div>
+        <div class="wday sat">土</div>
+      </div>
+      <div class="days-grid" id="daysGrid"></div>
+    </div>
+  </div>
+
+  <!-- ===== GRAPH VIEW ===== -->
+  <div id="graphView">
+    <div class="graph-header">
+      <button class="nav-btn" onclick="changeGMonth(-1)">◀</button>
+      <span class="month-title" id="gMonthTitle"></span>
+      <button class="nav-btn" onclick="changeGMonth(1)">▶</button>
+    </div>
+    <div class="chart-section">
+      <div class="chart-title">⚖️ 体重 (kg)</div>
+      <div class="chart-wrap"><canvas id="weightChart" height="180"></canvas></div>
+    </div>
+    <div class="chart-section" style="margin-top:16px">
+      <div class="chart-title">🔥 カロリー収支 (kcal)</div>
+      <div class="chart-wrap"><canvas id="balanceChart" height="180"></canvas></div>
+    </div>
+  </div>
+
+</div><!-- #app -->
+
+<!-- ===== MODAL ===== -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal" id="modal">
+    <div class="modal-title">📝 <span id="modalTitle"></span></div>
+
+    <div class="form-row">
+      <label>🔴 摂取カロリー (kcal)</label>
+      <input type="number" id="inIntake" min="0" max="9999" placeholder="例: 1800" inputmode="numeric">
+    </div>
+    <div class="form-row">
+      <label>🔵 消費カロリー (kcal)</label>
+      <input type="number" id="inBurn" min="0" max="9999" placeholder="例: 300" inputmode="numeric">
+    </div>
+
+    <div id="balPreview" class="balance-preview" style="display:none"></div>
+
+    <div class="form-row">
+      <label>⚖️ 体重 (kg)</label>
+      <input type="number" id="inWeight" min="20" max="250" step="0.1" placeholder="例: 55.2" inputmode="decimal">
+    </div>
+
+    <label class="period-label">
+      <input type="checkbox" id="inPeriod">
+      <span>🩸 この日を生理開始日として記録</span>
+    </label>
+
+    <div class="modal-actions">
+      <button class="btn-save"   onclick="saveDay()">保存</button>
+      <button class="btn-delete" onclick="deleteDay()">削除</button>
+      <button class="btn-cancel" onclick="closeModal()">キャンセル</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════
+//  TAP HANDLER (touch + click 両対応)
+//  touchend で即時反応 + preventDefault で
+//  後続 click の二重発火を防ぐ
+// ═══════════════════════════════════════════
+function onTap(el, fn) {
+  let moved = false;
+  el.addEventListener('touchstart', () => { moved = false; }, { passive: true });
+  el.addEventListener('touchmove',  () => { moved = true; },  { passive: true });
+  el.addEventListener('touchend', (e) => {
+    if (!moved) { e.preventDefault(); fn(); }
+  }, { passive: false });
+  el.addEventListener('click', fn); // マウス操作のフォールバック
+}
+
+// ═══════════════════════════════════════════
+//  CONSTANTS & STATE
+// ═══════════════════════════════════════════
+const STORAGE_KEY  = 'health_cal_v1';
+const CYCLE_LEN    = 28;
+
+const today = new Date();
+today.setHours(0,0,0,0);
+
+let calYear  = today.getFullYear();
+let calMonth = today.getMonth();  // 0-based
+let gYear    = today.getFullYear();
+let gMonth   = today.getMonth();
+let selKey   = null;
+
+const PHASES = {
+  menstrual:   { label: '生理中',          color: '#ffb3b3', text: '#c0392b' },
+  follicular:  { label: '痩せやすい時期',   color: '#b3ffb3', text: '#27ae60' },
+  ovulation:   { label: '排卵日',           color: '#fff3b3', text: '#d4a017' },
+  earlyLuteal: { label: 'むくみやすい時期', color: '#ffd9b3', text: '#e67e22' },
+  lateLuteal:  { label: 'むくみ注意',       color: '#f5b3ff', text: '#8e44ad' },
+};
+
+// ═══════════════════════════════════════════
+//  STORAGE
+// ═══════════════════════════════════════════
+function getData() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); }
+  catch { return {}; }
+}
+function putData(d) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(d));
+}
+function fmtKey(y, m, d) {
+  // m is 0-based
+  return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+}
+
+// ═══════════════════════════════════════════
+//  MENSTRUAL CYCLE LOGIC
+// ═══════════════════════════════════════════
+function periodStarts(data) {
+  return Object.keys(data).filter(k => data[k].periodStart).sort();
+}
+
+function daysBetween(a, b) {
+  return Math.round((new Date(b) - new Date(a)) / 86400000);
+}
+
+// Returns cycle day (1-based) for a given date string, or null if no period recorded
+function cycleDay(dateStr, data) {
+  const starts = periodStarts(data).filter(s => s <= dateStr);
+  if (!starts.length) return null;
+  const last = starts[starts.length - 1];
+  return (daysBetween(last, dateStr) % CYCLE_LEN) + 1;
+}
+
+function phaseKey(cd) {
+  if (!cd) return null;
+  if (cd <= 7)   return 'menstrual';
+  if (cd <= 13)  return 'follicular';
+  if (cd === 14) return 'ovulation';
+  if (cd <= 21)  return 'earlyLuteal';
+  return 'lateLuteal';
+}
+
+// Returns true if the date is in a PREDICTED (not actual) period window
+function isPredicted(dateStr, data) {
+  const starts = periodStarts(data);
+  if (!starts.length) return false;
+  const last = starts[starts.length - 1];
+  if (dateStr <= last) return false;
+
+  const diff = daysBetween(last, dateStr);
+  const cycleNum = Math.floor(diff / CYCLE_LEN);
+  if (cycleNum === 0) return false; // still in the first cycle
+
+  const cd = (diff % CYCLE_LEN) + 1;
+  if (cd > 7) return false; // not in menstrual window
+
+  // Calculate the predicted start for this cycle
+  const predStart = new Date(last);
+  predStart.setDate(predStart.getDate() + cycleNum * CYCLE_LEN);
+  const predStr = predStart.toISOString().slice(0, 10);
+
+  // If user already recorded an actual start within ±3 days, don't show prediction
+  const hasActual = starts.some(s => Math.abs(daysBetween(s, predStr)) <= 3 && s > last);
+  return !hasActual;
+}
+
+// ═══════════════════════════════════════════
+//  CALENDAR RENDER
+// ═══════════════════════════════════════════
+function renderCalendar() {
+  const data = getData();
+  document.getElementById('monthTitle').textContent =
+    `${calYear}年${calMonth+1}月`;
+
+  const firstDow  = new Date(calYear, calMonth, 1).getDay();
+  const daysCount = new Date(calYear, calMonth+1, 0).getDate();
+  const grid      = document.getElementById('daysGrid');
+  grid.innerHTML  = '';
+
+  // Empty leading cells
+  for (let i = 0; i < firstDow; i++) {
+    const empty = document.createElement('div');
+    empty.className = 'day-cell empty';
+    grid.appendChild(empty);
+  }
+
+  for (let d = 1; d <= daysCount; d++) {
+    const key  = fmtKey(calYear, calMonth, d);
+    const rec  = data[key] || {};
+    const dow  = new Date(calYear, calMonth, d).getDay();
+    const isToday = (key === today.toISOString().slice(0,10));
+
+    const cd   = cycleDay(key, data);
+    const pk   = phaseKey(cd);
+    const pred = !pk && isPredicted(key, data);
+
+    // ── Cell ──
+    const cell = document.createElement('div');
+    let cls = 'day-cell';
+    if (dow === 0) cls += ' sun-col';
+    if (dow === 6) cls += ' sat-col';
+    if (isToday)   cls += ' today';
+    if (pred)      cls += ' predicted';
+    cell.className = cls;
+    onTap(cell, () => openModal(key));
+
+    // Phase bar
+    const bar = document.createElement('div');
+    bar.className = 'phase-bar';
+    if (pk) {
+      bar.style.background = PHASES[pk].color;
+    } else if (pred) {
+      bar.style.background = '#ffe8e8';
+      bar.style.border = '1px dashed #e74c3c';
+    }
+    cell.appendChild(bar);
+
+    // Day number
+    const numEl = document.createElement('div');
+    numEl.className = 'day-num';
+    numEl.textContent = d;
+    if (rec.periodStart) {
+      const dot = document.createElement('span');
+      dot.className = 'period-mark';
+      numEl.appendChild(dot);
+    }
+    cell.appendChild(numEl);
+
+    // Data
+    if (rec.intake || rec.burn || rec.weight) {
+      const dataEl = document.createElement('div');
+      dataEl.className = 'day-data';
+      let html = '';
+      if (rec.intake) html += `<div class="d-intake">摂${rec.intake}</div>`;
+      if (rec.burn)   html += `<div class="d-burn">消${rec.burn}</div>`;
+      if (rec.intake != null || rec.burn != null) {
+        const bal = (rec.intake || 0) - (rec.burn || 0);
+        const sign = bal >= 0 ? '+' : '';
+        html += `<div class="${bal >= 0 ? 'd-plus' : 'd-minus'}">${sign}${bal}</div>`;
+      }
+      if (rec.weight) html += `<div class="d-weight">${rec.weight}kg</div>`;
+      dataEl.innerHTML = html;
+      cell.appendChild(dataEl);
+    }
+
+    // Phase label
+    if (pk) {
+      const lbl = document.createElement('div');
+      lbl.className = 'phase-lbl';
+      lbl.style.color = PHASES[pk].text;
+      lbl.textContent = PHASES[pk].label;
+      cell.appendChild(lbl);
+    } else if (pred) {
+      const lbl = document.createElement('div');
+      lbl.className = 'phase-lbl';
+      lbl.style.color = '#c0392b';
+      lbl.textContent = '生理予測';
+      cell.appendChild(lbl);
+    }
+
+    grid.appendChild(cell);
+  }
+}
+
+function changeMonth(delta) {
+  calMonth += delta;
+  if (calMonth < 0)  { calMonth = 11; calYear--; }
+  if (calMonth > 11) { calMonth = 0;  calYear++; }
+  renderCalendar();
+}
+
+// ═══════════════════════════════════════════
+//  MODAL
+// ═══════════════════════════════════════════
+function openModal(key) {
+  selKey = key;
+  const [y, m, d] = key.split('-').map(Number);
+  const rec = (getData()[key] || {});
+
+  document.getElementById('modalTitle').textContent = `${y}年${m}月${d}日`;
+  document.getElementById('inIntake').value  = rec.intake  != null ? rec.intake  : '';
+  document.getElementById('inBurn').value    = rec.burn    != null ? rec.burn    : '';
+  document.getElementById('inWeight').value  = rec.weight  != null ? rec.weight  : '';
+  document.getElementById('inPeriod').checked = rec.periodStart || false;
+
+  refreshBalPreview();
+  document.getElementById('modalOverlay').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('open');
+  selKey = null;
+}
+
+// Close on overlay backdrop tap — pointerdown でタッチ・マウス両対応
+document.getElementById('modalOverlay').addEventListener('pointerdown', function(e) {
+  if (e.target === this) closeModal();
+});
+
+function refreshBalPreview() {
+  const intake = parseFloat(document.getElementById('inIntake').value) || 0;
+  const burn   = parseFloat(document.getElementById('inBurn').value)   || 0;
+  const el = document.getElementById('balPreview');
+  if (intake > 0 || burn > 0) {
+    const bal = intake - burn;
+    const sign = bal >= 0 ? '+' : '';
+    const color = bal >= 0 ? '#e67e22' : '#27ae60';
+    el.style.display = 'block';
+    el.innerHTML = `収支: <span style="color:${color};font-size:16px">${sign}${bal} kcal</span>`;
+  } else {
+    el.style.display = 'none';
+  }
+}
+document.getElementById('inIntake').addEventListener('input', refreshBalPreview);
+document.getElementById('inBurn').addEventListener('input',   refreshBalPreview);
+
+function saveDay() {
+  if (!selKey) return;
+  const intake  = parseInt(document.getElementById('inIntake').value)    || null;
+  const burn    = parseInt(document.getElementById('inBurn').value)       || null;
+  const weight  = parseFloat(document.getElementById('inWeight').value)  || null;
+  const period  = document.getElementById('inPeriod').checked;
+
+  const data = getData();
+  if (!intake && !burn && !weight && !period) {
+    delete data[selKey];
+  } else {
+    const rec = {};
+    if (intake  != null) rec.intake      = intake;
+    if (burn    != null) rec.burn        = burn;
+    if (weight  != null) rec.weight      = weight;
+    if (period)          rec.periodStart = true;
+    data[selKey] = rec;
+  }
+  putData(data);
+  closeModal();
+  renderCalendar();
+}
+
+function deleteDay() {
+  if (!selKey) return;
+  const data = getData();
+  delete data[selKey];
+  putData(data);
+  closeModal();
+  renderCalendar();
+}
+
+// ═══════════════════════════════════════════
+//  VIEW SWITCHING
+// ═══════════════════════════════════════════
+function switchView(view) {
+  const isCalendar = view === 'calendar';
+  document.getElementById('calendarView').style.display = isCalendar ? 'block' : 'none';
+  document.getElementById('graphView').style.display    = isCalendar ? 'none' : 'block';
+  document.getElementById('tabCal').classList.toggle('active', isCalendar);
+  document.getElementById('tabGph').classList.toggle('active', !isCalendar);
+  if (!isCalendar) {
+    // Allow layout to settle before measuring canvas dimensions
+    requestAnimationFrame(() => requestAnimationFrame(renderGraphs));
+  }
+}
+
+// ═══════════════════════════════════════════
+//  GRAPH RENDER
+// ═══════════════════════════════════════════
+function changeGMonth(delta) {
+  gMonth += delta;
+  if (gMonth < 0)  { gMonth = 11; gYear--; }
+  if (gMonth > 11) { gMonth = 0;  gYear++; }
+  renderGraphs();
+}
+
+function renderGraphs() {
+  document.getElementById('gMonthTitle').textContent = `${gYear}年${gMonth+1}月`;
+  const data  = getData();
+  const days  = new Date(gYear, gMonth+1, 0).getDate();
+
+  const wPts  = [];
+  const bPts  = [];
+  for (let d = 1; d <= days; d++) {
+    const rec = data[fmtKey(gYear, gMonth, d)] || {};
+    wPts.push({ day: d, v: rec.weight != null ? rec.weight : null });
+    const hasCalorie = rec.intake != null || rec.burn != null;
+    bPts.push({ day: d, v: hasCalorie ? (rec.intake || 0) - (rec.burn || 0) : null });
+  }
+
+  drawLineChart('weightChart',  wPts, '#ff6b9d', false);
+  drawLineChart('balanceChart', bPts, '#5dade2', true);
+}
+
+function drawLineChart(canvasId, pts, lineColor, showZero) {
+  const canvas = document.getElementById(canvasId);
+  const wrap   = canvas.parentElement;
+  const dpr    = window.devicePixelRatio || 1;
+  const cssW   = wrap.clientWidth  || 300;
+  const cssH   = parseInt(canvas.getAttribute('height')) || 180;
+
+  canvas.width  = cssW * dpr;
+  canvas.height = cssH * dpr;
+  canvas.style.width  = cssW + 'px';
+  canvas.style.height = cssH + 'px';
+
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+
+  const pad = { t: 14, r: 12, b: 28, l: 46 };
+  const pw  = cssW - pad.l - pad.r;
+  const ph  = cssH - pad.t - pad.b;
+  const n   = pts.length;
+
+  ctx.clearRect(0, 0, cssW, cssH);
+
+  // Background
+  ctx.fillStyle = '#f9f9f9';
+  ctx.fillRect(pad.l, pad.t, pw, ph);
+
+  const valid = pts.filter(p => p.v !== null);
+
+  if (valid.length === 0) {
+    ctx.fillStyle = '#bbb';
+    ctx.font = '13px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('データなし', pad.l + pw / 2, pad.t + ph / 2);
+    return;
+  }
+
+  const vals = valid.map(p => p.v);
+  let minV = Math.min(...vals);
+  let maxV = Math.max(...vals);
+  if (showZero) { minV = Math.min(minV, 0); maxV = Math.max(maxV, 0); }
+  if (minV === maxV) { minV -= 1; maxV += 1; }
+  const range = maxV - minV;
+  const pad10 = range * 0.12;
+  const lo    = minV - pad10;
+  const hi    = maxV + pad10;
+  const span  = hi - lo;
+
+  const toX = d  => pad.l + ((d - 1) / Math.max(n - 1, 1)) * pw;
+  const toY = v  => pad.t + ph - ((v - lo) / span) * ph;
+
+  // Grid lines + Y labels
+  const gridN = 4;
+  ctx.font = '9px sans-serif';
+  ctx.textAlign = 'right';
+  ctx.textBaseline = 'middle';
+  for (let i = 0; i <= gridN; i++) {
+    const v = lo + (span / gridN) * i;
+    const y = toY(v);
+    ctx.strokeStyle = '#e8e8e8';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(pad.l + pw, y); ctx.stroke();
+    ctx.fillStyle = '#999';
+    ctx.fillText(v.toFixed(1), pad.l - 4, y);
+  }
+
+  // Zero line
+  if (showZero && lo < 0 && hi > 0) {
+    const y0 = toY(0);
+    ctx.strokeStyle = '#b0b0b0';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([5, 4]);
+    ctx.beginPath(); ctx.moveTo(pad.l, y0); ctx.lineTo(pad.l + pw, y0); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // Border
+  ctx.strokeStyle = '#ddd';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([]);
+  ctx.strokeRect(pad.l, pad.t, pw, ph);
+
+  // X labels
+  ctx.fillStyle = '#999';
+  ctx.font = '9px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+  const step = n <= 15 ? 5 : 10;
+  pts.forEach(p => {
+    if (p.day === 1 || p.day % step === 0) {
+      ctx.fillText(p.day, toX(p.day), pad.t + ph + 4);
+    }
+  });
+
+  // Fill area (gradient)
+  const grad = ctx.createLinearGradient(0, pad.t, 0, pad.t + ph);
+  grad.addColorStop(0, lineColor + '44');
+  grad.addColorStop(1, lineColor + '08');
+
+  const segments = [];
+  let current = [];
+  pts.forEach(p => {
+    if (p.v !== null) { current.push(p); }
+    else if (current.length) { segments.push(current); current = []; }
+  });
+  if (current.length) segments.push(current);
+
+  const baseY = showZero ? toY(Math.max(lo, 0)) : pad.t + ph;
+  segments.forEach(seg => {
+    if (seg.length < 2) return;
+    ctx.beginPath();
+    ctx.moveTo(toX(seg[0].day), baseY);
+    seg.forEach(p => ctx.lineTo(toX(p.day), toY(p.v)));
+    ctx.lineTo(toX(seg[seg.length-1].day), baseY);
+    ctx.closePath();
+    ctx.fillStyle = grad;
+    ctx.fill();
+  });
+
+  // Lines
+  ctx.lineWidth = 2;
+  ctx.lineJoin  = 'round';
+  ctx.lineCap   = 'round';
+  ctx.strokeStyle = lineColor;
+  segments.forEach(seg => {
+    ctx.beginPath();
+    seg.forEach((p, i) => {
+      i === 0 ? ctx.moveTo(toX(p.day), toY(p.v)) : ctx.lineTo(toX(p.day), toY(p.v));
+    });
+    ctx.stroke();
+  });
+
+  // Dots
+  valid.forEach(p => {
+    const x = toX(p.day);
+    const y = toY(p.v);
+    ctx.beginPath();
+    ctx.arc(x, y, 3.5, 0, Math.PI * 2);
+    ctx.fillStyle = '#fff';
+    ctx.fill();
+    ctx.strokeStyle = lineColor;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  });
+}
+
+// Redraw graphs on window resize
+let resizeTimer;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => {
+    if (document.getElementById('graphView').style.display !== 'none') {
+      renderGraphs();
+    }
+  }, 150);
+});
+
+// ═══════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════
+renderCalendar();
+</script>
+</body>
+</html>
