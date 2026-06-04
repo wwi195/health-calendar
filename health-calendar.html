@@ -353,6 +353,18 @@
       font-size: 13px;
       cursor: pointer;
     }
+
+    /* ── Profile Modal ── */
+    .bmr-display {
+      background: #fff5f8;
+      border-radius: 8px;
+      padding: 8px 12px;
+      text-align: center;
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 13px;
+      color: #ff6b9d;
+    }
   </style>
 </head>
 <body>
@@ -402,6 +414,7 @@
       <button class="nav-btn" onclick="changeGMonth(-1)">◀</button>
       <span class="month-title" id="gMonthTitle"></span>
       <button class="nav-btn" onclick="changeGMonth(1)">▶</button>
+      <button class="nav-btn" onclick="openProfileModal()" style="padding:4px 10px">⚙️</button>
     </div>
     <div class="chart-section">
       <div class="chart-title">⚖️ 体重 (kg)</div>
@@ -414,6 +427,30 @@
   </div>
 
 </div><!-- #app -->
+
+<!-- ===== PROFILE MODAL ===== -->
+<div class="modal-overlay" id="profileOverlay">
+  <div class="modal" id="profileModal">
+    <div class="modal-title">⚙️ <span>プロフィール設定</span></div>
+    <div class="form-row">
+      <label>📏 身長 (cm)</label>
+      <input type="number" id="inHeight" min="100" max="250" placeholder="例: 160" inputmode="numeric">
+    </div>
+    <div class="form-row">
+      <label>⚖️ 体重 (kg)（初期値・毎日記録で更新されます）</label>
+      <input type="number" id="inProfileWeight" min="30" max="200" step="0.1" placeholder="例: 55.0" inputmode="decimal">
+    </div>
+    <div class="form-row">
+      <label>🎂 年齢 (歳)</label>
+      <input type="number" id="inAge" min="10" max="100" placeholder="例: 30" inputmode="numeric">
+    </div>
+    <div id="bmrDisplay" class="bmr-display" style="display:none"></div>
+    <div class="modal-actions">
+      <button class="btn-save" onclick="saveProfile()">保存</button>
+      <button class="btn-cancel" onclick="closeProfileModal()">キャンセル</button>
+    </div>
+  </div>
+</div>
 
 <!-- ===== MODAL ===== -->
 <div class="modal-overlay" id="modalOverlay">
@@ -469,6 +506,7 @@ function onTap(el, fn) {
 //  CONSTANTS & STATE
 // ═══════════════════════════════════════════
 const STORAGE_KEY  = 'health_cal_v1';
+const PROFILE_KEY  = 'health_profile_v1';
 const CYCLE_LEN    = 28;
 
 const today = new Date();
@@ -497,6 +535,17 @@ function getData() {
 }
 function putData(d) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(d));
+}
+function getProfile() {
+  try { return JSON.parse(localStorage.getItem(PROFILE_KEY) || 'null'); }
+  catch { return null; }
+}
+function putProfile(p) {
+  localStorage.setItem(PROFILE_KEY, JSON.stringify(p));
+}
+function calcBMR(height, weight, age) {
+  // Mifflin-St Jeor 女性用
+  return Math.round(10 * weight + 6.25 * height - 5 * age - 161);
 }
 function fmtKey(y, m, d) {
   // m is 0-based
@@ -683,6 +732,44 @@ function closeModal() {
   selKey = null;
 }
 
+function openProfileModal() {
+  const p = getProfile();
+  document.getElementById('inHeight').value        = p ? p.height : '';
+  document.getElementById('inProfileWeight').value = p ? p.weight : '';
+  document.getElementById('inAge').value           = p ? p.age    : '';
+  refreshBmrDisplay();
+  document.getElementById('profileOverlay').classList.add('open');
+}
+function closeProfileModal() {
+  document.getElementById('profileOverlay').classList.remove('open');
+}
+function refreshBmrDisplay() {
+  const h  = parseFloat(document.getElementById('inHeight').value);
+  const w  = parseFloat(document.getElementById('inProfileWeight').value);
+  const a  = parseInt(document.getElementById('inAge').value);
+  const el = document.getElementById('bmrDisplay');
+  if (h > 0 && w > 0 && a > 0) {
+    const bmr = calcBMR(h, w, a);
+    el.style.display = 'block';
+    el.textContent   = `基礎代謝: ${bmr.toLocaleString()} kcal/日`;
+  } else {
+    el.style.display = 'none';
+  }
+}
+function saveProfile() {
+  const height = parseFloat(document.getElementById('inHeight').value);
+  const weight = parseFloat(document.getElementById('inProfileWeight').value);
+  const age    = parseInt(document.getElementById('inAge').value);
+  if (!height || !weight || !age) {
+    alert('身長・体重・年齢をすべて入力してください');
+    return;
+  }
+  const bmr = calcBMR(height, weight, age);
+  putProfile({ height, weight, age, bmr });
+  closeProfileModal();
+  if (typeof renderToday === 'function') renderToday();
+}
+
 // Close on overlay backdrop tap — pointerdown でタッチ・マウス両対応
 document.getElementById('modalOverlay').addEventListener('pointerdown', function(e) {
   if (e.target === this) closeModal();
@@ -704,6 +791,12 @@ function refreshBalPreview() {
 }
 document.getElementById('inIntake').addEventListener('input', refreshBalPreview);
 document.getElementById('inBurn').addEventListener('input',   refreshBalPreview);
+document.getElementById('inHeight').addEventListener('input',        refreshBmrDisplay);
+document.getElementById('inProfileWeight').addEventListener('input', refreshBmrDisplay);
+document.getElementById('inAge').addEventListener('input',           refreshBmrDisplay);
+document.getElementById('profileOverlay').addEventListener('pointerdown', function(e) {
+  if (e.target === this) closeProfileModal();
+});
 
 function saveDay() {
   if (!selKey) return;
