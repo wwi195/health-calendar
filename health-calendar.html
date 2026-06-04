@@ -365,6 +365,84 @@
       margin-bottom: 13px;
       color: #ff6b9d;
     }
+
+    /* ── Today View ── */
+    #todayView { padding: 16px 14px 24px; }
+    .today-date {
+      font-size: 18px;
+      font-weight: 700;
+      color: #333;
+      margin-bottom: 14px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid #ffe4ec;
+    }
+    .today-card {
+      background: #fff;
+      border: 1px solid #eee;
+      border-radius: 14px;
+      padding: 14px 16px;
+      margin-bottom: 12px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+    }
+    .today-card-title {
+      font-size: 11px;
+      font-weight: 700;
+      color: #aaa;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 10px;
+    }
+    .today-cal-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 14px;
+      padding: 4px 0;
+      color: #555;
+    }
+    .today-cal-divider { border-top: 1px solid #eee; margin: 8px 0; }
+    .today-cal-balance {
+      font-size: 22px;
+      font-weight: 700;
+      text-align: center;
+      padding: 6px 0;
+    }
+    .today-phase-name {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+    .today-phase-advice { font-size: 13px; color: #666; }
+    .today-weight {
+      font-size: 30px;
+      font-weight: 700;
+      color: #7f8c8d;
+      text-align: center;
+      padding: 4px 0;
+    }
+    .today-no-data {
+      text-align: center;
+      color: #aaa;
+      font-size: 14px;
+      padding: 16px 0;
+      cursor: pointer;
+      line-height: 2;
+    }
+    .today-no-data span { color: #ff6b9d; font-weight: 700; }
+    .today-record-btn {
+      width: 100%;
+      padding: 14px;
+      background: #ff6b9d;
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 4px;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .today-record-btn:active { background: #e85a8c; }
   </style>
 </head>
 <body>
@@ -374,10 +452,14 @@
   <div class="header">
     <h1>🌸 ヘルスカレンダー</h1>
     <div class="view-tabs">
+      <button class="tab-btn" id="tabToday" onclick="switchView('today')">🌸 今日</button>
       <button class="tab-btn active" id="tabCal" onclick="switchView('calendar')">📅 カレンダー</button>
       <button class="tab-btn"        id="tabGph" onclick="switchView('graph')">📊 グラフ</button>
     </div>
   </div>
+
+  <!-- ===== TODAY VIEW ===== -->
+  <div id="todayView" style="display:none"></div>
 
   <!-- ===== CALENDAR VIEW ===== -->
   <div id="calendarView">
@@ -607,6 +689,97 @@ function isPredicted(dateStr, data) {
 }
 
 // ═══════════════════════════════════════════
+//  TODAY VIEW
+// ═══════════════════════════════════════════
+const PHASE_ADVICE = {
+  menstrual:   '安静にしよう。無理な運動はNG',
+  follicular:  'ダイエットのチャンス！積極的に動こう',
+  ovulation:   '体が活発な時期。代謝も上がりやすい',
+  earlyLuteal: '塩分・水分に注意してむくみ予防',
+  lateLuteal:  '食欲が増えやすい時期。意識してコントロール',
+};
+
+function renderToday() {
+  const todayKey = today.toISOString().slice(0, 10);
+  const data     = getData();
+  const rec      = data[todayKey] || {};
+  const profile  = getProfile();
+  const view     = document.getElementById('todayView');
+
+  const [y, m, d] = todayKey.split('-').map(Number);
+  const weekdays  = ['日', '月', '火', '水', '木', '金', '土'];
+  const dow       = today.getDay();
+
+  // ── Calorie section ──
+  const intake     = rec.intake != null ? rec.intake : null;
+  const burn       = rec.burn   != null ? rec.burn   : 0;
+  const bmr        = (profile && intake != null) ? profile.bmr : 0;
+  const hasCalorie = rec.intake != null || rec.burn != null;
+
+  let calHTML = '';
+  if (hasCalorie) {
+    const bal   = (intake || 0) - burn - bmr;
+    const sign  = bal >= 0 ? '+' : '';
+    const color = bal > 100 ? '#e67e22' : bal < -100 ? '#27ae60' : '#888';
+    const dir   = bal > 100 ? '⚠️ 太り方向' : bal < -100 ? '✅ 痩せ方向' : '→ 維持';
+    calHTML = `
+      <div class="today-cal-row"><span>摂取</span><span>${(intake || 0).toLocaleString()} kcal</span></div>
+      <div class="today-cal-row"><span>消費（運動）</span><span>${burn.toLocaleString()} kcal</span></div>
+      ${bmr > 0 ? `<div class="today-cal-row"><span>基礎代謝</span><span>${bmr.toLocaleString()} kcal</span></div>` : ''}
+      <div class="today-cal-divider"></div>
+      <div class="today-cal-balance" style="color:${color}">${sign}${bal.toLocaleString()} kcal ${dir}</div>
+    `;
+  } else {
+    calHTML = `<div class="today-no-data" onclick="openModal('${todayKey}')">
+      今日のデータがまだありません<br><span>タップして記録 ▶</span>
+    </div>`;
+  }
+
+  // ── Phase section ──
+  const cd   = cycleDay(todayKey, data);
+  const pk   = phaseKey(cd);
+  const pred = !pk && isPredicted(todayKey, data);
+
+  let phaseHTML = '';
+  if (pk === 'menstrual' && cd) {
+    phaseHTML = `
+      <div class="today-phase-name" style="color:${PHASES[pk].text}">🩸 生理${cd}日目</div>
+      <div class="today-phase-advice">${PHASE_ADVICE.menstrual}</div>`;
+  } else if (pk) {
+    const icon = { follicular: '🌿', ovulation: '🌟', earlyLuteal: '💧', lateLuteal: '🌙' };
+    phaseHTML = `
+      <div class="today-phase-name" style="color:${PHASES[pk].text}">${icon[pk] || ''} ${PHASES[pk].label}</div>
+      <div class="today-phase-advice">${PHASE_ADVICE[pk]}</div>`;
+  } else if (pred) {
+    phaseHTML = `
+      <div class="today-phase-name" style="color:#c0392b">📅 生理予測日</div>
+      <div class="today-phase-advice">もうすぐ生理が来るかも</div>`;
+  } else {
+    phaseHTML = `
+      <div class="today-phase-name" style="color:#ccc">記録なし</div>
+      <div class="today-phase-advice">生理開始日を記録すると表示されます</div>`;
+  }
+
+  view.innerHTML = `
+    <div class="today-date">${y}年${m}月${d}日（${weekdays[dow]}）</div>
+    <div class="today-card">
+      <div class="today-card-title">📊 カロリー収支</div>
+      ${calHTML}
+    </div>
+    <div class="today-card">
+      <div class="today-card-title">🩸 生理・体調フェーズ</div>
+      ${phaseHTML}
+    </div>
+    ${rec.weight ? `
+    <div class="today-card">
+      <div class="today-card-title">⚖️ 体重</div>
+      <div class="today-weight">${rec.weight} kg</div>
+    </div>` : ''}
+    <button class="today-record-btn" onclick="openModal('${todayKey}')">✏️ 今日を記録・編集</button>
+  `;
+}
+
+// ═══════════════════════════════════════════
 //  CALENDAR RENDER
 // ═══════════════════════════════════════════
 function renderCalendar() {
@@ -771,8 +944,7 @@ function saveProfile() {
   const bmr = calcBMR(height, weight, age);
   putProfile({ height, weight, age, bmr });
   closeProfileModal();
-  // renderToday は Task 4 で追加される
-  if (typeof renderToday === 'function') renderToday();
+  renderToday();
 }
 
 // Close on overlay backdrop tap — pointerdown でタッチ・マウス両対応
@@ -830,6 +1002,7 @@ function saveDay() {
   putData(data);
   closeModal();
   renderCalendar();
+  renderToday();
 }
 
 function deleteDay() {
@@ -839,6 +1012,7 @@ function deleteDay() {
   putData(data);
   closeModal();
   renderCalendar();
+  renderToday();
 }
 
 // ═══════════════════════════════════════════
@@ -846,14 +1020,19 @@ function deleteDay() {
 // ═══════════════════════════════════════════
 function switchView(view) {
   const isCalendar = view === 'calendar';
+  const isToday    = view === 'today';
+  const isGraph    = view === 'graph';
+
+  document.getElementById('todayView').style.display    = isToday    ? 'block' : 'none';
   document.getElementById('calendarView').style.display = isCalendar ? 'block' : 'none';
-  document.getElementById('graphView').style.display    = isCalendar ? 'none' : 'block';
-  document.getElementById('tabCal').classList.toggle('active', isCalendar);
-  document.getElementById('tabGph').classList.toggle('active', !isCalendar);
-  if (!isCalendar) {
-    // Allow layout to settle before measuring canvas dimensions
-    requestAnimationFrame(() => requestAnimationFrame(renderGraphs));
-  }
+  document.getElementById('graphView').style.display    = isGraph    ? 'block' : 'none';
+
+  document.getElementById('tabToday').classList.toggle('active', isToday);
+  document.getElementById('tabCal').classList.toggle('active',   isCalendar);
+  document.getElementById('tabGph').classList.toggle('active',   isGraph);
+
+  if (isToday)    renderToday();
+  if (isGraph)    requestAnimationFrame(() => requestAnimationFrame(renderGraphs));
 }
 
 // ═══════════════════════════════════════════
@@ -1045,6 +1224,11 @@ window.addEventListener('resize', () => {
 //  INIT
 // ═══════════════════════════════════════════
 renderCalendar();
+switchView('today');
+
+if (!getProfile()) {
+  setTimeout(() => openProfileModal(), 400);
+}
 </script>
 </body>
 </html>
