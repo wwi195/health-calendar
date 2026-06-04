@@ -411,9 +411,11 @@
   <!-- ===== GRAPH VIEW ===== -->
   <div id="graphView">
     <div class="graph-header">
-      <button class="nav-btn" onclick="changeGMonth(-1)">◀</button>
-      <span class="month-title" id="gMonthTitle"></span>
-      <button class="nav-btn" onclick="changeGMonth(1)">▶</button>
+      <div style="display:flex;align-items:center;gap:8px">
+        <button class="nav-btn" onclick="changeGMonth(-1)">◀</button>
+        <span class="month-title" id="gMonthTitle"></span>
+        <button class="nav-btn" onclick="changeGMonth(1)">▶</button>
+      </div>
       <button class="nav-btn" onclick="openProfileModal()" style="padding:4px 10px">⚙️</button>
     </div>
     <div class="chart-section">
@@ -760,13 +762,14 @@ function saveProfile() {
   const height = parseFloat(document.getElementById('inHeight').value);
   const weight = parseFloat(document.getElementById('inProfileWeight').value);
   const age    = parseInt(document.getElementById('inAge').value);
-  if (!height || !weight || !age) {
+  if (isNaN(height) || height <= 0 || isNaN(weight) || weight <= 0 || isNaN(age) || age <= 0) {
     alert('身長・体重・年齢をすべて入力してください');
     return;
   }
   const bmr = calcBMR(height, weight, age);
   putProfile({ height, weight, age, bmr });
   closeProfileModal();
+  // renderToday は Task 4 で追加される
   if (typeof renderToday === 'function') renderToday();
 }
 
