@@ -387,7 +387,7 @@
       <button class="nav-btn" onclick="changeMonth(1)">▶</button>
     </div>
     <div class="phase-legend">
-      <div class="legend-item"><div class="legend-dot" style="background:#ffb3b3"></div>生理中</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#ffb3b3"></div>生理中（1〜7日目）</div>
       <div class="legend-item"><div class="legend-dot" style="background:#b3ffb3"></div>痩せやすい</div>
       <div class="legend-item"><div class="legend-dot" style="background:#fff3b3"></div>排卵日</div>
       <div class="legend-item"><div class="legend-dot" style="background:#ffd9b3"></div>むくみやすい</div>
@@ -525,7 +525,7 @@ const PHASES = {
   follicular:  { label: '痩せやすい時期',   color: '#b3ffb3', text: '#27ae60' },
   ovulation:   { label: '排卵日',           color: '#fff3b3', text: '#d4a017' },
   earlyLuteal: { label: 'むくみやすい時期', color: '#ffd9b3', text: '#e67e22' },
-  lateLuteal:  { label: 'むくみ注意',       color: '#f5b3ff', text: '#8e44ad' },
+  lateLuteal:  { label: '生理前・むくみ注意', color: '#f5b3ff', text: '#8e44ad' },
 };
 
 // ═══════════════════════════════════════════
@@ -602,7 +602,7 @@ function isPredicted(dateStr, data) {
   const predStr = predStart.toISOString().slice(0, 10);
 
   // If user already recorded an actual start within ±3 days, don't show prediction
-  const hasActual = starts.some(s => Math.abs(daysBetween(s, predStr)) <= 3 && s > last);
+  const hasActual = starts.some(s => Math.abs(daysBetween(s, predStr)) <= 7 && s > last);
   return !hasActual;
 }
 
@@ -692,7 +692,7 @@ function renderCalendar() {
       const lbl = document.createElement('div');
       lbl.className = 'phase-lbl';
       lbl.style.color = PHASES[pk].text;
-      lbl.textContent = PHASES[pk].label;
+      lbl.textContent = (pk === 'menstrual' && cd) ? `生理${cd}日目` : PHASES[pk].label;
       cell.appendChild(lbl);
     } else if (pred) {
       const lbl = document.createElement('div');
