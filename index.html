@@ -42,7 +42,7 @@
       color: #fff;
       padding: 5px 11px;
       border-radius: 20px;
-      font-size: 12px;
+      font-size: 13px;
       cursor: pointer;
       font-weight: 600;
       transition: background 0.2s;
@@ -117,7 +117,7 @@
     }
 
     .day-cell {
-      min-height: 72px;
+      min-height: 80px;
       border: 1px solid #efefef;
       border-radius: 5px;
       padding: 2px 3px 3px;
@@ -148,7 +148,7 @@
     }
 
     .day-num {
-      font-size: 12px;
+      font-size: 14px;
       font-weight: 700;
       line-height: 1.2;
       display: flex;
@@ -168,7 +168,7 @@
     }
 
     .day-data {
-      font-size: 9px;
+      font-size: 11px;
       line-height: 1.5;
       margin-top: 2px;
     }
@@ -179,14 +179,14 @@
     .d-weight  { color: #7f8c8d; }
 
     .phase-lbl {
-      font-size: 8px;
+      font-size: 10px;
       line-height: 1.2;
       margin-top: 1px;
       word-break: keep-all;
     }
 
     @media (max-width: 380px) {
-      .day-cell { min-height: 64px; }
+      .day-cell { min-height: 70px; }
       .day-data { font-size: 8px; }
       .phase-lbl { font-size: 7px; }
     }
@@ -275,7 +275,7 @@
       padding: 9px 12px;
       border: 1.5px solid #ddd;
       border-radius: 8px;
-      font-size: 15px;
+      font-size: 16px;
       appearance: none;
       -moz-appearance: textfield;
       transition: border-color 0.15s;
@@ -353,6 +353,96 @@
       font-size: 13px;
       cursor: pointer;
     }
+
+    /* ── Profile Modal ── */
+    .bmr-display {
+      background: #fff5f8;
+      border-radius: 8px;
+      padding: 8px 12px;
+      text-align: center;
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 13px;
+      color: #ff6b9d;
+    }
+
+    /* ── Today View ── */
+    #todayView { padding: 16px 14px 24px; }
+    .today-date {
+      font-size: 18px;
+      font-weight: 700;
+      color: #333;
+      margin-bottom: 14px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid #ffe4ec;
+    }
+    .today-card {
+      background: #fff;
+      border: 1px solid #eee;
+      border-radius: 14px;
+      padding: 14px 16px;
+      margin-bottom: 12px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+    }
+    .today-card-title {
+      font-size: 11px;
+      font-weight: 700;
+      color: #aaa;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 10px;
+    }
+    .today-cal-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 14px;
+      padding: 4px 0;
+      color: #555;
+    }
+    .today-cal-divider { border-top: 1px solid #eee; margin: 8px 0; }
+    .today-cal-balance {
+      font-size: 22px;
+      font-weight: 700;
+      text-align: center;
+      padding: 6px 0;
+    }
+    .today-phase-name {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+    .today-phase-advice { font-size: 13px; color: #666; }
+    .today-weight {
+      font-size: 30px;
+      font-weight: 700;
+      color: #7f8c8d;
+      text-align: center;
+      padding: 4px 0;
+    }
+    .today-no-data {
+      text-align: center;
+      color: #aaa;
+      font-size: 14px;
+      padding: 16px 0;
+      cursor: pointer;
+      line-height: 2;
+    }
+    .today-no-data span { color: #ff6b9d; font-weight: 700; }
+    .today-record-btn {
+      width: 100%;
+      padding: 14px;
+      background: #ff6b9d;
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 4px;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .today-record-btn:active { background: #e85a8c; }
   </style>
 </head>
 <body>
@@ -362,10 +452,14 @@
   <div class="header">
     <h1>🌸 ヘルスカレンダー</h1>
     <div class="view-tabs">
+      <button class="tab-btn" id="tabToday" onclick="switchView('today')">🌸 今日</button>
       <button class="tab-btn active" id="tabCal" onclick="switchView('calendar')">📅 カレンダー</button>
       <button class="tab-btn"        id="tabGph" onclick="switchView('graph')">📊 グラフ</button>
     </div>
   </div>
+
+  <!-- ===== TODAY VIEW ===== -->
+  <div id="todayView" style="display:none"></div>
 
   <!-- ===== CALENDAR VIEW ===== -->
   <div id="calendarView">
@@ -375,7 +469,7 @@
       <button class="nav-btn" onclick="changeMonth(1)">▶</button>
     </div>
     <div class="phase-legend">
-      <div class="legend-item"><div class="legend-dot" style="background:#ffb3b3"></div>生理中</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#ffb3b3"></div>生理中（1〜7日目）</div>
       <div class="legend-item"><div class="legend-dot" style="background:#b3ffb3"></div>痩せやすい</div>
       <div class="legend-item"><div class="legend-dot" style="background:#fff3b3"></div>排卵日</div>
       <div class="legend-item"><div class="legend-dot" style="background:#ffd9b3"></div>むくみやすい</div>
@@ -399,9 +493,12 @@
   <!-- ===== GRAPH VIEW ===== -->
   <div id="graphView">
     <div class="graph-header">
-      <button class="nav-btn" onclick="changeGMonth(-1)">◀</button>
-      <span class="month-title" id="gMonthTitle"></span>
-      <button class="nav-btn" onclick="changeGMonth(1)">▶</button>
+      <div style="display:flex;align-items:center;gap:8px">
+        <button class="nav-btn" onclick="changeGMonth(-1)">◀</button>
+        <span class="month-title" id="gMonthTitle"></span>
+        <button class="nav-btn" onclick="changeGMonth(1)">▶</button>
+      </div>
+      <button class="nav-btn" onclick="openProfileModal()" style="padding:4px 10px">⚙️</button>
     </div>
     <div class="chart-section">
       <div class="chart-title">⚖️ 体重 (kg)</div>
@@ -415,6 +512,30 @@
 
 </div><!-- #app -->
 
+<!-- ===== PROFILE MODAL ===== -->
+<div class="modal-overlay" id="profileOverlay">
+  <div class="modal" id="profileModal">
+    <div class="modal-title">⚙️ <span>プロフィール設定</span></div>
+    <div class="form-row">
+      <label>📏 身長 (cm)</label>
+      <input type="number" id="inHeight" min="100" max="250" placeholder="例: 160" inputmode="numeric">
+    </div>
+    <div class="form-row">
+      <label>⚖️ 体重 (kg)（初期値・毎日記録で更新されます）</label>
+      <input type="number" id="inProfileWeight" min="30" max="200" step="0.1" placeholder="例: 55.0" inputmode="decimal">
+    </div>
+    <div class="form-row">
+      <label>🎂 年齢 (歳)</label>
+      <input type="number" id="inAge" min="10" max="100" placeholder="例: 30" inputmode="numeric">
+    </div>
+    <div id="bmrDisplay" class="bmr-display" style="display:none"></div>
+    <div class="modal-actions">
+      <button class="btn-save" onclick="saveProfile()">保存</button>
+      <button class="btn-cancel" onclick="closeProfileModal()">キャンセル</button>
+    </div>
+  </div>
+</div>
+
 <!-- ===== MODAL ===== -->
 <div class="modal-overlay" id="modalOverlay">
   <div class="modal" id="modal">
@@ -425,7 +546,7 @@
       <input type="number" id="inIntake" min="0" max="9999" placeholder="例: 1800" inputmode="numeric">
     </div>
     <div class="form-row">
-      <label>🔵 消費カロリー (kcal)</label>
+      <label>🔵 消費カロリー（運動分） (kcal)</label>
       <input type="number" id="inBurn" min="0" max="9999" placeholder="例: 300" inputmode="numeric">
     </div>
 
@@ -469,6 +590,7 @@ function onTap(el, fn) {
 //  CONSTANTS & STATE
 // ═══════════════════════════════════════════
 const STORAGE_KEY  = 'health_cal_v1';
+const PROFILE_KEY  = 'health_profile_v1';
 const CYCLE_LEN    = 28;
 
 const today = new Date();
@@ -485,7 +607,7 @@ const PHASES = {
   follicular:  { label: '痩せやすい時期',   color: '#b3ffb3', text: '#27ae60' },
   ovulation:   { label: '排卵日',           color: '#fff3b3', text: '#d4a017' },
   earlyLuteal: { label: 'むくみやすい時期', color: '#ffd9b3', text: '#e67e22' },
-  lateLuteal:  { label: 'むくみ注意',       color: '#f5b3ff', text: '#8e44ad' },
+  lateLuteal:  { label: '生理前・むくみ注意', color: '#f5b3ff', text: '#8e44ad' },
 };
 
 // ═══════════════════════════════════════════
@@ -497,6 +619,17 @@ function getData() {
 }
 function putData(d) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(d));
+}
+function getProfile() {
+  try { return JSON.parse(localStorage.getItem(PROFILE_KEY) || 'null'); }
+  catch { return null; }
+}
+function putProfile(p) {
+  localStorage.setItem(PROFILE_KEY, JSON.stringify(p));
+}
+function calcBMR(height, weight, age) {
+  // Mifflin-St Jeor 女性用
+  return Math.round(10 * weight + 6.25 * height - 5 * age - 161);
 }
 function fmtKey(y, m, d) {
   // m is 0-based
@@ -551,8 +684,99 @@ function isPredicted(dateStr, data) {
   const predStr = predStart.toISOString().slice(0, 10);
 
   // If user already recorded an actual start within ±3 days, don't show prediction
-  const hasActual = starts.some(s => Math.abs(daysBetween(s, predStr)) <= 3 && s > last);
+  const hasActual = starts.some(s => Math.abs(daysBetween(s, predStr)) <= 7 && s > last);
   return !hasActual;
+}
+
+// ═══════════════════════════════════════════
+//  TODAY VIEW
+// ═══════════════════════════════════════════
+const PHASE_ADVICE = {
+  menstrual:   '安静にしよう。無理な運動はNG',
+  follicular:  'ダイエットのチャンス！積極的に動こう',
+  ovulation:   '体が活発な時期。代謝も上がりやすい',
+  earlyLuteal: '塩分・水分に注意してむくみ予防',
+  lateLuteal:  '食欲が増えやすい時期。意識してコントロール',
+};
+
+function renderToday() {
+  const todayKey = today.toISOString().slice(0, 10);
+  const data     = getData();
+  const rec      = data[todayKey] || {};
+  const profile  = getProfile();
+  const view     = document.getElementById('todayView');
+
+  const [y, m, d] = todayKey.split('-').map(Number);
+  const weekdays  = ['日', '月', '火', '水', '木', '金', '土'];
+  const dow       = today.getDay();
+
+  // ── Calorie section ──
+  const intake     = rec.intake != null ? rec.intake : null;
+  const burn       = rec.burn   != null ? rec.burn   : 0;
+  const bmr        = (profile && intake != null && intake > 0) ? profile.bmr : 0;
+  const hasCalorie = rec.intake != null || rec.burn != null;
+
+  let calHTML = '';
+  if (hasCalorie) {
+    const bal   = (intake || 0) - burn - bmr;
+    const sign  = bal >= 0 ? '+' : '';
+    const color = bal > 100 ? '#e67e22' : bal < -100 ? '#27ae60' : '#888';
+    const dir   = bal > 100 ? '⚠️ 太り方向' : bal < -100 ? '✅ 痩せ方向' : '→ 維持';
+    calHTML = `
+      <div class="today-cal-row"><span>摂取</span><span>${(intake || 0).toLocaleString()} kcal</span></div>
+      <div class="today-cal-row"><span>消費（運動）</span><span>${burn.toLocaleString()} kcal</span></div>
+      ${bmr > 0 ? `<div class="today-cal-row"><span>基礎代謝</span><span>${bmr.toLocaleString()} kcal</span></div>` : ''}
+      <div class="today-cal-divider"></div>
+      <div class="today-cal-balance" style="color:${color}">${sign}${bal.toLocaleString()} kcal ${dir}</div>
+    `;
+  } else {
+    calHTML = `<div class="today-no-data" onclick="openModal('${todayKey}')">
+      今日のデータがまだありません<br><span>タップして記録 ▶</span>
+    </div>`;
+  }
+
+  // ── Phase section ──
+  const cd   = cycleDay(todayKey, data);
+  const pk   = phaseKey(cd);
+  const pred = !pk && isPredicted(todayKey, data);
+
+  let phaseHTML = '';
+  if (pk === 'menstrual' && cd) {
+    phaseHTML = `
+      <div class="today-phase-name" style="color:${PHASES[pk].text}">🩸 生理${cd}日目</div>
+      <div class="today-phase-advice">${PHASE_ADVICE.menstrual}</div>`;
+  } else if (pk) {
+    const icon = { follicular: '🌿', ovulation: '🌟', earlyLuteal: '💧', lateLuteal: '🌙' };
+    phaseHTML = `
+      <div class="today-phase-name" style="color:${PHASES[pk].text}">${icon[pk] || ''} ${PHASES[pk].label}</div>
+      <div class="today-phase-advice">${PHASE_ADVICE[pk]}</div>`;
+  } else if (pred) {
+    phaseHTML = `
+      <div class="today-phase-name" style="color:#c0392b">📅 生理予測日</div>
+      <div class="today-phase-advice">もうすぐ生理が来るかも</div>`;
+  } else {
+    phaseHTML = `
+      <div class="today-phase-name" style="color:#ccc">記録なし</div>
+      <div class="today-phase-advice">生理開始日を記録すると表示されます</div>`;
+  }
+
+  view.innerHTML = `
+    <div class="today-date">${y}年${m}月${d}日（${weekdays[dow]}）</div>
+    <div class="today-card">
+      <div class="today-card-title">📊 カロリー収支</div>
+      ${calHTML}
+    </div>
+    <div class="today-card">
+      <div class="today-card-title">🩸 生理・体調フェーズ</div>
+      ${phaseHTML}
+    </div>
+    ${rec.weight ? `
+    <div class="today-card">
+      <div class="today-card-title">⚖️ 体重</div>
+      <div class="today-weight">${Number(rec.weight)} kg</div>
+    </div>` : ''}
+    <button class="today-record-btn" onclick="openModal('${todayKey}')">✏️ 今日を記録・編集</button>
+  `;
 }
 
 // ═══════════════════════════════════════════
@@ -575,6 +799,7 @@ function renderCalendar() {
     grid.appendChild(empty);
   }
 
+  const profile = getProfile();
   for (let d = 1; d <= daysCount; d++) {
     const key  = fmtKey(calYear, calMonth, d);
     const rec  = data[key] || {};
@@ -625,9 +850,10 @@ function renderCalendar() {
       if (rec.intake) html += `<div class="d-intake">摂${rec.intake}</div>`;
       if (rec.burn)   html += `<div class="d-burn">消${rec.burn}</div>`;
       if (rec.intake != null || rec.burn != null) {
-        const bal = (rec.intake || 0) - (rec.burn || 0);
+        const bmr     = (profile && rec.intake != null) ? profile.bmr : 0;
+        const bal     = (rec.intake || 0) - (rec.burn || 0) - bmr;
         const sign = bal >= 0 ? '+' : '';
-        html += `<div class="${bal >= 0 ? 'd-plus' : 'd-minus'}">${sign}${bal}</div>`;
+        html += `<div class="${bal >= 0 ? 'd-plus' : 'd-minus'}">${sign}${bal.toLocaleString()}</div>`;
       }
       if (rec.weight) html += `<div class="d-weight">${rec.weight}kg</div>`;
       dataEl.innerHTML = html;
@@ -639,7 +865,7 @@ function renderCalendar() {
       const lbl = document.createElement('div');
       lbl.className = 'phase-lbl';
       lbl.style.color = PHASES[pk].text;
-      lbl.textContent = PHASES[pk].label;
+      lbl.textContent = (pk === 'menstrual' && cd) ? `生理${cd}日目` : PHASES[pk].label;
       cell.appendChild(lbl);
     } else if (pred) {
       const lbl = document.createElement('div');
@@ -683,27 +909,77 @@ function closeModal() {
   selKey = null;
 }
 
+function openProfileModal() {
+  const p = getProfile();
+  document.getElementById('inHeight').value        = p ? p.height : '';
+  document.getElementById('inProfileWeight').value = p ? p.weight : '';
+  document.getElementById('inAge').value           = p ? p.age    : '';
+  refreshBmrDisplay();
+  document.getElementById('profileOverlay').classList.add('open');
+}
+function closeProfileModal() {
+  document.getElementById('profileOverlay').classList.remove('open');
+}
+function refreshBmrDisplay() {
+  const h  = parseFloat(document.getElementById('inHeight').value);
+  const w  = parseFloat(document.getElementById('inProfileWeight').value);
+  const a  = parseInt(document.getElementById('inAge').value);
+  const el = document.getElementById('bmrDisplay');
+  if (h > 0 && w > 0 && a > 0) {
+    const bmr = calcBMR(h, w, a);
+    el.style.display = 'block';
+    el.textContent   = `基礎代謝: ${bmr.toLocaleString()} kcal/日`;
+  } else {
+    el.style.display = 'none';
+  }
+}
+function saveProfile() {
+  const height = parseFloat(document.getElementById('inHeight').value);
+  const weight = parseFloat(document.getElementById('inProfileWeight').value);
+  const age    = parseInt(document.getElementById('inAge').value);
+  if (isNaN(height) || height <= 0 || isNaN(weight) || weight <= 0 || isNaN(age) || age <= 0) {
+    alert('身長・体重・年齢をすべて入力してください');
+    return;
+  }
+  const bmr = calcBMR(height, weight, age);
+  putProfile({ height, weight, age, bmr });
+  closeProfileModal();
+  renderToday();
+}
+
 // Close on overlay backdrop tap — pointerdown でタッチ・マウス両対応
 document.getElementById('modalOverlay').addEventListener('pointerdown', function(e) {
   if (e.target === this) closeModal();
 });
 
 function refreshBalPreview() {
-  const intake = parseFloat(document.getElementById('inIntake').value) || 0;
-  const burn   = parseFloat(document.getElementById('inBurn').value)   || 0;
-  const el = document.getElementById('balPreview');
+  const intake  = parseFloat(document.getElementById('inIntake').value) || 0;
+  const burn    = parseFloat(document.getElementById('inBurn').value)   || 0;
+  const el      = document.getElementById('balPreview');
+  const profile = getProfile();
+  const bmr     = (profile && intake > 0) ? profile.bmr : 0;
+
   if (intake > 0 || burn > 0) {
-    const bal = intake - burn;
+    const bal  = intake - burn - bmr;
     const sign = bal >= 0 ? '+' : '';
     const color = bal >= 0 ? '#e67e22' : '#27ae60';
+    const bmrNote = bmr > 0
+      ? `<div style="font-size:11px;color:#999;margin-top:3px">基礎代謝 ${bmr.toLocaleString()} kcal 差し引き済み</div>`
+      : '';
     el.style.display = 'block';
-    el.innerHTML = `収支: <span style="color:${color};font-size:16px">${sign}${bal} kcal</span>`;
+    el.innerHTML = `収支: <span style="color:${color};font-size:16px">${sign}${bal.toLocaleString()} kcal</span>${bmrNote}`;
   } else {
     el.style.display = 'none';
   }
 }
 document.getElementById('inIntake').addEventListener('input', refreshBalPreview);
 document.getElementById('inBurn').addEventListener('input',   refreshBalPreview);
+document.getElementById('inHeight').addEventListener('input',        refreshBmrDisplay);
+document.getElementById('inProfileWeight').addEventListener('input', refreshBmrDisplay);
+document.getElementById('inAge').addEventListener('input',           refreshBmrDisplay);
+document.getElementById('profileOverlay').addEventListener('pointerdown', function(e) {
+  if (e.target === this) closeProfileModal();
+});
 
 function saveDay() {
   if (!selKey) return;
@@ -726,6 +1002,7 @@ function saveDay() {
   putData(data);
   closeModal();
   renderCalendar();
+  renderToday();
 }
 
 function deleteDay() {
@@ -735,6 +1012,7 @@ function deleteDay() {
   putData(data);
   closeModal();
   renderCalendar();
+  renderToday();
 }
 
 // ═══════════════════════════════════════════
@@ -742,14 +1020,19 @@ function deleteDay() {
 // ═══════════════════════════════════════════
 function switchView(view) {
   const isCalendar = view === 'calendar';
+  const isToday    = view === 'today';
+  const isGraph    = view === 'graph';
+
+  document.getElementById('todayView').style.display    = isToday    ? 'block' : 'none';
   document.getElementById('calendarView').style.display = isCalendar ? 'block' : 'none';
-  document.getElementById('graphView').style.display    = isCalendar ? 'none' : 'block';
-  document.getElementById('tabCal').classList.toggle('active', isCalendar);
-  document.getElementById('tabGph').classList.toggle('active', !isCalendar);
-  if (!isCalendar) {
-    // Allow layout to settle before measuring canvas dimensions
-    requestAnimationFrame(() => requestAnimationFrame(renderGraphs));
-  }
+  document.getElementById('graphView').style.display    = isGraph    ? 'block' : 'none';
+
+  document.getElementById('tabToday').classList.toggle('active', isToday);
+  document.getElementById('tabCal').classList.toggle('active',   isCalendar);
+  document.getElementById('tabGph').classList.toggle('active',   isGraph);
+
+  if (isToday)    renderToday();
+  if (isGraph)    requestAnimationFrame(() => requestAnimationFrame(renderGraphs));
 }
 
 // ═══════════════════════════════════════════
@@ -941,6 +1224,11 @@ window.addEventListener('resize', () => {
 //  INIT
 // ═══════════════════════════════════════════
 renderCalendar();
+switchView('today');
+
+if (!getProfile()) {
+  setTimeout(() => openProfileModal(), 400);
+}
 </script>
 </body>
 </html>
