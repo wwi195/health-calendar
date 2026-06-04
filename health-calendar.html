@@ -626,6 +626,7 @@ function renderCalendar() {
     grid.appendChild(empty);
   }
 
+  const profile = getProfile();
   for (let d = 1; d <= daysCount; d++) {
     const key  = fmtKey(calYear, calMonth, d);
     const rec  = data[key] || {};
@@ -676,11 +677,10 @@ function renderCalendar() {
       if (rec.intake) html += `<div class="d-intake">摂${rec.intake}</div>`;
       if (rec.burn)   html += `<div class="d-burn">消${rec.burn}</div>`;
       if (rec.intake != null || rec.burn != null) {
-        const profile = getProfile();
         const bmr     = (profile && rec.intake != null) ? profile.bmr : 0;
         const bal     = (rec.intake || 0) - (rec.burn || 0) - bmr;
         const sign = bal >= 0 ? '+' : '';
-        html += `<div class="${bal >= 0 ? 'd-plus' : 'd-minus'}">${sign}${bal}</div>`;
+        html += `<div class="${bal >= 0 ? 'd-plus' : 'd-minus'}">${sign}${bal.toLocaleString()}</div>`;
       }
       if (rec.weight) html += `<div class="d-weight">${rec.weight}kg</div>`;
       dataEl.innerHTML = html;
@@ -785,14 +785,14 @@ function refreshBalPreview() {
   const burn    = parseFloat(document.getElementById('inBurn').value)   || 0;
   const el      = document.getElementById('balPreview');
   const profile = getProfile();
-  const bmr     = profile ? profile.bmr : 0;
+  const bmr     = (profile && intake > 0) ? profile.bmr : 0;
 
   if (intake > 0 || burn > 0) {
     const bal  = intake - burn - bmr;
     const sign = bal >= 0 ? '+' : '';
     const color = bal >= 0 ? '#e67e22' : '#27ae60';
     const bmrNote = bmr > 0
-      ? `<div style="font-size:11px;color:#999;margin-top:3px">基礎代謝 ${bmr.toLocaleString()} kcal を含む</div>`
+      ? `<div style="font-size:11px;color:#999;margin-top:3px">基礎代謝 ${bmr.toLocaleString()} kcal 差し引き済み</div>`
       : '';
     el.style.display = 'block';
     el.innerHTML = `収支: <span style="color:${color};font-size:16px">${sign}${bal.toLocaleString()} kcal</span>${bmrNote}`;
